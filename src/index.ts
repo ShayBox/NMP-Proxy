@@ -1,3 +1,3 @@
-import { Hub } from './hub';
+import { startHub } from './hub';
 
-new Hub({ port: 25566 }).start(true);
+startHub({ port: 25566 });

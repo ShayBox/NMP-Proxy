@@ -1,77 +1,52 @@
-import { createClient, createServer, states, Server, ServerOptions } from 'minecraft-protocol';
+import { Client, ClientOptions, createClient, createServer, Server, ServerOptions, states } from 'minecraft-protocol';
 
-export interface AccountInfo {
-	username: string;
-	password?: string;
-}
+const login = (client: Client, clientOptions: ClientOptions): void => {
+	const address = client.socket.remoteAddress;
+	console.log('Incoming connection from', address);
 
-export interface ServerInfo {
-	host: string;
-	port?: number;
-}
+	let endedClient = false;
+	let endedProxyClient = false;
+	const proxyClient = createClient(clientOptions);
 
-export class Proxy {
-	protected accountInfo: AccountInfo;
-	protected serverInfo: ServerInfo;
-	private server: Server;
-	public constructor(accountInfo: AccountInfo, serverInfo: ServerInfo, options: ServerOptions) {
-		this.accountInfo = accountInfo;
-		this.serverInfo = serverInfo;
-		this.server = createServer({ keepAlive: false, ...options });
-	}
+	client.on('end', () => {
+		endedClient = true;
+		console.log('Connection closed by client from', address);
+		if (!endedProxyClient) proxyClient.end('End');
+	});
+	client.on('error', error => {
+		endedClient = true;
+		console.log('Connection error by client from', address);
+		console.log(error.stack);
+		if (!endedProxyClient) proxyClient.end('Error');
+	});
+	client.on('raw', (data, meta) => {
+		if (proxyClient.state !== states.PLAY || meta.state !== states.PLAY) return;
+		if (endedProxyClient) return;
+		proxyClient.writeRaw(data);
+	});
 
-	public start(debug: boolean): Server {
-		return this.server.on('login', client => {
-			const address = client.socket.remoteAddress;
-			if (debug) console.log('Incoming connection from', address);
+	proxyClient.on('end', () => {
+		endedProxyClient = true;
+		console.log('Connection closed by server from', address);
+		if (!endedClient) client.end('End');
+	});
+	proxyClient.on('error', error => {
+		endedProxyClient = true;
+		console.log('Connection error by server from', address);
+		console.log(error.stack);
+		if (!endedClient) client.end('Error');
+	});
+	proxyClient.on('raw', (data, meta) => {
+		if (meta.state !== states.PLAY || client.state !== states.PLAY) return;
+		if (endedClient) return;
+		client.writeRaw(data);
+	});
+};
 
-			let endedClient = false;
-			let endedProxyClient = false;
-			const proxyClient = createClient({
-				username: this.accountInfo.username,
-				password: this.accountInfo.password,
-				host: this.serverInfo.host,
-				port: this.serverInfo.port,
-				keepAlive: false,
-			});
+export function startProxy(serverOptions: ServerOptions, clientOptions: ClientOptions): Server {
+	const server: Server = createServer(serverOptions)
+		.on('error', console.error)
+		.on('login', client => login(client, clientOptions));
 
-			client.on('end', () => {
-				endedClient = true;
-				if (debug) console.log('Connection closed by client from', address);
-				if (!endedProxyClient) proxyClient.end('End');
-			});
-			client.on('error', error => {
-				endedClient = true;
-				if (debug) {
-					console.log('Connection error by client from', address);
-					console.log(error.stack);
-				}
-				if (!endedProxyClient) proxyClient.end('Error');
-			});
-			client.on('raw', (data, meta) => {
-				if (proxyClient.state !== states.PLAY || meta.state !== states.PLAY) return;
-				if (endedProxyClient) return;
-				proxyClient.writeRaw(data);
-			});
-
-			proxyClient.on('end', () => {
-				endedProxyClient = true;
-				if (debug) console.log('Connection closed by server from', address);
-				if (!endedClient) client.end('End');
-			});
-			proxyClient.on('error', error => {
-				endedProxyClient = true;
-				if (debug) {
-					console.log('Connection error by server from', address);
-					console.log(error.stack);
-				}
-				if (!endedClient) client.end('Error');
-			});
-			proxyClient.on('raw', (data, meta) => {
-				if (meta.state !== states.PLAY || client.state !== states.PLAY) return;
-				if (endedClient) return;
-				client.writeRaw(data);
-			});
-		});
-	}
+	return server;
 }
