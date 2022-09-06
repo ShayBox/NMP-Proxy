@@ -1,33 +1,33 @@
 {
   "name": "mc-proxy",
   "version": "0.0.0",
-  "description": "Custom Minecraft proxy",
-  "main": "src/index.ts",
+  "description": "My custom Minecraft proxy server with account switching and random server joining.",
+  "main": "build/index.js",
   "scripts": {
-    "start": "node -r ts-node/register .",
-    "test": "nodemon -e ts --exec npm start"
+    "pretest": "rm -rf build",
+    "test": "npm start",
+    "prestart": "tsc",
+    "start": "node ."
   },
   "author": {
     "email": "shayneehartford@gmail.com",
     "name": "Shayne Hartford (ShayBox)",
-    "url": "https://shaybox.com/"
+    "url": "https://shaybox.com"
   },
   "license": "MIT",
   "dependencies": {
-    "@types/node": "^12.12.21",
-    "@types/vec3": "0.0.29",
-    "minecraft-protocol": "^1.9.4",
-    "prismarine-chunk": "github:hornta/prismarine-chunk#1_13",
-    "ts-node": "^8.5.4",
-    "typescript": "^3.7.4",
-    "vec3": "^0.1.3"
+    "@types/node": "^18.7.15",
+    "@types/vec3": "0.1.4",
+    "minecraft-protocol": "^1.36.1",
+    "prismarine-chunk": "^1.32.0",
+    "typescript": "^4.8.2",
+    "vec3": "^0.1.7"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^1.13.0",
-    "@typescript-eslint/parser": "^1.13.0",
-    "eslint": "^6.7.2",
-    "eslint-config-marine": "^3.0.3",
-    "nodemon": "^2.0.2"
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@typescript-eslint/parser": "^5.36.2",
+    "eslint": "^8.23.0",
+    "eslint-config-marine": "^9.4.1"
   },
   "eslintConfig": {
     "extends": "marine/node",
